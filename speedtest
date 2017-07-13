@@ -1,0 +1,3 @@
+#!/bin/bash
+date &>> /var/log/speedtest.log
+speedtest-cli &>> /var/log/speedtest.log
