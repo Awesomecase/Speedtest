@@ -159,7 +159,7 @@ class TextBeltRequest():
         while loop < 5:
             self.logger.debug("loop: %s", loop)
             query = requests.get("https://textbelt.com/status/%s",
-                                 self.request["textId"])
+                                 self.request.json()["textId"])
 
             if query.json()["status"] == "DELIVERED":
                 self.logger.info("Message Delivered")
