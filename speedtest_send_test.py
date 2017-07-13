@@ -102,7 +102,7 @@ class TextBeltRequest():
 
     def do_checks(self):
         """Do all the checks,  warn if no quota remaining, set self.success to True"""
-        if self.request.json["quotaRemaining"] <= 5:
+        if self.request.json()["quotaRemaining"] <= 5:
             self.logger.warning(
                 "Textbelt quota less than or equal to 5, should fill up again")
         self.logger.info("Calling requests_check()")
