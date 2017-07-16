@@ -16,7 +16,7 @@ class SpeedtestNoSpeedsError(SpeedtestSenderError):
     def __init__(self, *args, **kwargs):
         SpeedtestSenderError.__init__(self, *args, **kwargs)
 
-class SpeedTestAttemptsExceededError(SpeedtestSenderError):
+class SpeedtestAttemptsExceededError(SpeedtestSenderError):
     """
     Inherits from SpeedtestSenderException. Attempts for sending excceded
     """

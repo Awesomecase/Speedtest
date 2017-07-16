@@ -14,7 +14,7 @@ import logging
 
 import requests
 from speedtest_exceptions import SpeedtestNoSpeedsError
-from speedtest_exceptions import SpeedTestAttemptsExceededError
+from speedtest_exceptions import SpeedtestAttemptsExceededError
 
 
 def main():
@@ -48,6 +48,7 @@ class TextBeltRequest():
     def __init__(self):
         self.attempts = 0
         self.logger = create_logger()
+        assert self.logger
         self.success = None
         self.request = None
         self.start_request()
@@ -56,10 +57,11 @@ class TextBeltRequest():
         print(__name__ + ": " + self.success)
 
     def start_request(self):
-        """Main try statement"""
+        """Main try statement, calls make_request and logs exceptions then removes speedtest.log"""
         try:
+            self.logger.info("calling make_request")
             self.make_request()
-        except SpeedTestAttemptsExceededError:
+        except SpeedtestAttemptsExceededError:
             self.logger.exception("Attempts succeeded, try again later")
         except SpeedtestNoSpeedsError:
             self.logger.exception(
@@ -77,8 +79,10 @@ class TextBeltRequest():
             self.logger.exception("Bad value")
         except FileNotFoundError:
             self.logger.exception("Speedtest.log doesn't exist, run speedtest")
-        finally:
-            os.remove("/var/log/speedtest.log")
+        try:
+            os.remove("/home/cole/speedtest.log")
+        except FileNotFoundError:
+            self.logger.exception("Speedtest.log doesn't exist, run speedtest")
 
     def make_request(self):
         """make the request and check if http response code was good"""
@@ -99,6 +103,23 @@ class TextBeltRequest():
         self.request.raise_for_status()
         self.logger.info("Calling do_checks")
         self.do_checks()
+
+    def make_average(self):
+        """create averages from speedtest.log"""
+        download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
+        amounts = []
+        self.logger.info("Opening speedtest.log")
+        with open("/home/cole/speedtest.log", "r") as file:
+            for line in file:
+                search = download_regex.search(line.rstrip())
+                if search:
+                    amounts.append(float(search.group(1)))
+        average_speed = sum(amounts) / len(amounts)
+        self.logger.info("Returning average speed if there are any")
+        if average_speed:
+            return average_speed
+        else:
+            raise SpeedtestNoSpeedsError("No speeds in speedtest.log")
 
     def do_checks(self):
         """Do all the checks,  warn if no quota remaining, set self.success to True"""
@@ -136,31 +157,14 @@ class TextBeltRequest():
                 "Unexpected combination of self.attempts and self.request.status code. With self.attempts: %s, and status_code: %s",
                 self.attempts, self.request.status_code)
 
-    def make_average(self):
-        """create averages from speedtest.log"""
-        download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
-        amounts = []
-        self.logger.info("Opening speedtest.log")
-        with open("/var/log/speedtest.log", "r") as file:
-            for line in file:
-                search = download_regex.search(line.rstrip())
-                if search:
-                    amounts.append(float(search.group(1)))
-        average_speed = sum(amounts) / len(amounts)
-        self.logger.info("Returning average speed if there are any")
-        if average_speed:
-            return average_speed
-        else:
-            raise SpeedtestNoSpeedsError("No speeds in speedtest.log")
-
     def check_sent(self):
         """Query Textbelt if the message is delivered and retry if not"""
         loop = 0
         while loop < 5:
             self.logger.debug("loop: %s", loop)
-            query = requests.get("https://textbelt.com/status/%s",
-                                 self.request.json()["textId"])
-
+            query = requests.get("https://textbelt.com/status/{}".format(
+                self.request.json()["textId"]))
+            self.request.raise_for_status()
             if query.json()["status"] == "DELIVERED":
                 self.logger.info("Message Delivered")
                 return True
