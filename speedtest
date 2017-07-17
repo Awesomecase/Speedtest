@@ -1,5 +1,0 @@
-#!/bin/bash
-echo "Putting date in speedtest.log"
-date &>> /home/cole/speedtest.log
-echo "putting speedtest-cli into speedtest.log"
-speedtest-cli --server 5032 &>> /home/cole/speedtest.log
