@@ -9,4 +9,5 @@ setup(name="speedtest_sendtest",
       license="GGPL3",
       packages=["speedtest_sendtest"],
       zip_safe=False,
-      install_requires=["requests"],)
+      install_requires=["requests"],
+      scripts=["bin/speedtest_log"])

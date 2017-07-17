@@ -1,2 +1,2 @@
-import speedtest_send_test
+import speedtest_sendtest
 import hypothesis
