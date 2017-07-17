@@ -1,0 +1,2 @@
+import speedtest_send_test
+import hypothesis
