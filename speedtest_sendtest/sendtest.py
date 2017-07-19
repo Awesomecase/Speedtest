@@ -52,6 +52,7 @@ class TextBeltRequest():
         self.success = None
         self.request = None
         self.start_request()
+        self.speedtest_log = "/home/cole/speedtest.log"
 
     def __str__(self):
         print(__name__ + ": " + self.success)
@@ -80,7 +81,7 @@ class TextBeltRequest():
         except FileNotFoundError:
             self.logger.exception("Speedtest.log doesn't exist, run speedtest")
         try:
-            os.remove("/home/cole/speedtest.log")
+            os.remove(self.speedtest_log)
         except FileNotFoundError:
             self.logger.exception("Speedtest.log doesn't exist, run speedtest")
 
@@ -109,7 +110,7 @@ class TextBeltRequest():
         download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
         amounts = []
         self.logger.info("Opening speedtest.log")
-        with open("/home/cole/speedtest.log", "r") as file:
+        with open(self.speedtest_log, "r") as file:
             for line in file:
                 search = download_regex.search(line.rstrip())
                 if search:
