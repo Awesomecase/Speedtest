@@ -1,1 +1,2 @@
-def TextBeltRequest
+from speedtest_sendtest import sendtest
+import pytest

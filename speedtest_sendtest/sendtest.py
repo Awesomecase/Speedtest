@@ -10,11 +10,12 @@ from datetime import datetime
 from datetime import timedelta
 from time import sleep
 import os
-import logging
 
 import requests
-from speedtest_exceptions import SpeedtestNoSpeedsError
-from speedtest_exceptions import SpeedtestAttemptsExceededError
+
+from speedtest_sendtest.logging import create_logger
+from speedtest_sendtest.speedtest_exceptions import SpeedtestNoSpeedsError
+from speedtest_sendtest.speedtest_exceptions import SpeedtestAttemptsExceededError
 
 
 def main():
@@ -26,16 +27,6 @@ def main():
         print("Failure")
 
 
-def create_logger():
-    """
-    Sets up logging
-    :returns logging object named log
-    """
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-    log = logging.getLogger(__name__)
-    return log
-
-
 class TextBeltRequest():
     """
     Class for TextBeltRequest
@@ -45,14 +36,14 @@ class TextBeltRequest():
         success - if delivery succeeded
     """
 
-    def __init__(self):
+    def __init__(self, logger=True):
         self.attempts = 0
-        self.logger = create_logger()
-        assert self.logger
         self.success = None
         self.request = None
+        if logger:
+            self.logger = create_logger()
+        self.speedtest_log = os.path.expanduser("~/speedtest.log")
         self.start_request()
-        self.speedtest_log = "/home/cole/speedtest.log"
 
     def __str__(self):
         print(__name__ + ": " + self.success)
@@ -150,7 +141,7 @@ class TextBeltRequest():
             self.logger.info("Recalling make_request()")
             self.make_request()
         elif self.attempts == 5:
-            raise SpeedTestAttemptsExceededError("Attempts exceeded")
+            raise SpeedtestAttemptsExceededError("Attempts exceeded")
         elif self.request.status_code == requests.codes.ok:
             return True
         else:
@@ -205,7 +196,7 @@ class TextBeltRequest():
         elif self.request.json()["success"]:
             return True
         elif self.attempts == 5:
-            raise SpeedTestAttemptsExceededError("Attempts exceeded")
+            raise SpeedtestAttemptsExceededError("Attempts exceeded")
         else:
             raise ValueError(
                 "Unexpected combination of self.request.json and self.attempts with self.request.json: %s and self.attempts: %s",

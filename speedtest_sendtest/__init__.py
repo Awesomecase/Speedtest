@@ -1,1 +1,2 @@
-from speedtest_sendtest import sendtest
+__all__ = ["speedtest_exceptions", "speedtest"]
+from . import sendtest

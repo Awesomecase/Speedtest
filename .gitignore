@@ -101,3 +101,6 @@ ENV/
 tags
 TAGS
 .#*
+GPATH
+GTAGS
+GRTAGS
