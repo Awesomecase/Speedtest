@@ -3,11 +3,12 @@
 TextbeltRequest class
 reads speedtest.log and creates an average for yesterday, texts it to your
 phone and checks if sent
-logs to sterr
+logs to stderr
 """
 import re
-from datetime import datetime
+from datetime import date
 from datetime import timedelta
+from datetime import datetime
 from time import sleep
 import os
 
@@ -34,6 +35,8 @@ class TextBeltRequest():
         attempts - cannot exceed 4 or errors
         logger - logger from create_logger
         success - if delivery succeeded
+        speedtest_log - log file to open
+        download_regex - what regex to use to find download speeds
     """
 
     def __init__(self, logger=True):
@@ -49,7 +52,8 @@ class TextBeltRequest():
         print(__name__ + ": " + self.success)
 
     def start_request(self):
-        """Main try statement, calls make_request and logs exceptions then removes speedtest.log"""
+        """Main try statement, calls make_request and logs exceptions then
+        removes speedtest.log"""
         try:
             self.logger.info("calling make_request")
             self.make_request()
@@ -74,13 +78,13 @@ class TextBeltRequest():
         try:
             os.remove(self.speedtest_log)
         except FileNotFoundError:
-            self.logger.exception("Speedtest.log doesn't exist, run speedtest")
+            self.logger.exception("Deleting speedtest.log didn't work")
 
     def make_request(self):
         """make the request and check if http response code was good"""
         self.logger.info("Calling make_average")
         average_speed = self.make_average()
-        yesterday = datetime.today() - timedelta(days=1)
+        yesterday = date.today() - timedelta(days=1)
         self.logger.info("Making request")
         self.request = requests.post("https://textbelt.com/text", {
             "phone":
@@ -98,15 +102,21 @@ class TextBeltRequest():
 
     def make_average(self):
         """create averages from speedtest.log"""
-        download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
+        self.download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
         amounts = []
         self.logger.info("Opening speedtest.log")
         with open(self.speedtest_log, "r") as file:
             for line in file:
-                search = download_regex.search(line.rstrip())
+                search = self.download_regex.search(line.rstrip())
                 if search:
                     amounts.append(float(search.group(1)))
-        average_speed = sum(amounts) / len(amounts)
+                else:
+                    raise SpeedtestNoSpeedsError(
+                        "Nothing matched regex in file")
+        try:
+            average_speed = sum(amounts) / len(amounts)
+        except ZeroDivisionError:
+            raise SpeedtestNoSpeedsError("Speeds summed to 0")
         self.logger.info("Returning average speed if there are any")
         if average_speed:
             return average_speed
@@ -114,7 +124,7 @@ class TextBeltRequest():
             raise SpeedtestNoSpeedsError("No speeds in speedtest.log")
 
     def do_checks(self):
-        """Do all the checks,  warn if no quota remaining, set self.success to True"""
+        """Do all the checks,  warn if no quota remaining, set self.success to if requests_check_response, check_success_response, check sent response are True"""
         if self.request.json()["quotaRemaining"] <= 5:
             self.logger.warning(
                 "Textbelt quota less than or equal to 5, should fill up again")
