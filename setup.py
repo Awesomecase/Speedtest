@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(name="speedtest_sendtest",
       version="0.1",
@@ -7,8 +7,7 @@ setup(name="speedtest_sendtest",
       author="Cole Swingholm",
       author_email="cole.swingholm@gmail.com",
       license="GGPL3",
-      packages=find_packages(where="src"),
-      package_dir={"": "src"},
+      packages=["speedtest_sendtest"],
       zip_safe=False,
       install_requires=["requests"],
       scripts=["bin/speedtest_log"])
