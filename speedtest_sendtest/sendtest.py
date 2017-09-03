@@ -31,22 +31,40 @@ def main():
 class TextBeltRequest():
     """
     Class for TextBeltRequest
+    :args
+        logger - bool, whether to create a logger
+        start_request - bool, whether to start the request or not
+        delete_file - whether to delete the log file or not
     :attributes
         attempts - cannot exceed 4 or errors
         logger - logger from create_logger
         success - if delivery succeeded
         speedtest_log - log file to open
         download_regex - what regex to use to find download speeds
+        delete_file - bool, whether to delete the file or not
     """
 
-    def __init__(self, logger=True):
+    def __init__(self,
+                 speedtest_log=None,
+                 logger=True,
+                 start_request=True,
+                 delete_file=True):
+        if logger:
+            self.logger = create_logger()
+            self.logger.debug("Logger created")
+        if speedtest_log:
+            self.logger.debug("Speedtest log set to %s" % speedtest_log)
+            self.speedtest_log = speedtest_log
+        else:
+            self.speedtest_log = os.path.expanduser("~/speedtest.log")
         self.attempts = 0
         self.success = None
         self.request = None
-        if logger:
-            self.logger = create_logger()
-        self.speedtest_log = os.path.expanduser("~/speedtest.log")
-        self.start_request()
+        self.delete_file = delete_file
+        self.download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
+        if start_request:
+            self.logger.debug("Starting request")
+            self.start_request()
 
     def __str__(self):
         print(__name__ + ": " + self.success)
@@ -75,12 +93,13 @@ class TextBeltRequest():
             self.logger.exception("Bad value")
         except FileNotFoundError:
             self.logger.exception("Speedtest.log doesn't exist, run speedtest")
-        try:
-            os.remove(self.speedtest_log)
-        except FileNotFoundError:
-            self.logger.exception("Deleting speedtest.log didn't work")
+        if self.delete_file:
+            try:
+                os.remove(self.speedtest_log)
+            except FileNotFoundError:
+                self.logger.exception("Deleting speedtest.log didn't work")
 
-    def make_request(self):
+    def make_request(self, do_checks=True):
         """make the request and check if http response code was good"""
         self.logger.info("Calling make_average")
         average_speed = self.make_average()
@@ -97,12 +116,12 @@ class TextBeltRequest():
             "596c1c51c19d9511a3e7008452f9d055c7a294b61hiJCfbyBOv3nSgH2RMNfYBYA"
         })
         self.request.raise_for_status()
-        self.logger.info("Calling do_checks")
-        self.do_checks()
+        if do_checks:
+            self.logger.info("Calling do_checks")
+            self.do_checks()
 
     def make_average(self):
         """create averages from speedtest.log"""
-        self.download_regex = re.compile(r"Download:\s(\d{1,2}\.\d{1,2})\s")
         amounts = []
         self.logger.info("Opening speedtest.log")
         with open(self.speedtest_log, "r") as file:
@@ -110,9 +129,6 @@ class TextBeltRequest():
                 search = self.download_regex.search(line.rstrip())
                 if search:
                     amounts.append(float(search.group(1)))
-                else:
-                    raise SpeedtestNoSpeedsError(
-                        "Nothing matched regex in file")
         try:
             average_speed = sum(amounts) / len(amounts)
         except ZeroDivisionError:
